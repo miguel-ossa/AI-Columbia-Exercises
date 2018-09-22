@@ -1,0 +1,43 @@
+#!/usr/bin/python
+
+"""
+  Implementation of the IA for the Sudoku problem,
+  using AC-3 and Backtracking
+
+  Miguel de la Ossa July, 2017
+"""
+import sys
+import copy
+from collections import deque, OrderedDict
+from heapq import heapify, heappush, heappop
+import time
+
+_DEBUG_LEVEL = 1
+
+
+def main(script, *args):
+    initialTime = time.clock()
+    values = {}
+    values["1"] = 50
+    values["2"] = 25
+    values["3"] = 150
+    values["4"] = 100
+    values["5"] = 75
+    values["6"] = 10
+    values["7"] = 200
+    values["8"] = 120
+    values["9"] = 300
+    list = []
+    #TODO: comprobar que esto funciona
+    for w in sorted(values, key=values.get, reverse=True):
+        list.append(w)
+
+    for x in list:
+        print x
+
+    finalTime = time.clock()
+    print ('time', finalTime - initialTime)
+
+if __name__ == '__main__':
+    main(*sys.argv)
+

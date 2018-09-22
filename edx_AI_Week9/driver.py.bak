@@ -1,0 +1,564 @@
+#!/usr/bin/python
+
+"""
+  Implementation of the IA for the Sudoku problem,
+  using AC-3 and Backtracking
+
+  Miguel de la Ossa July, 2017
+
+python -m cProfile -s tottime
+
+"""
+import sys
+import copy
+from collections import deque, OrderedDict
+from heapq import heapify, heappush, heappop
+import time
+
+_DEBUG_LEVEL = 1
+
+class priority_dict(dict):
+    """Dictionary that can be used as a priority queue.
+
+    Keys of the dictionary are items to be put into the queue, and values
+    are their respective priorities. All dictionary methods work as expected.
+    The advantage over a standard heapq-based priority queue is
+    that priorities of items can be efficiently updated (amortized O(1))
+    using code as 'thedict[item] = new_priority.'
+
+    The 'smallest' method can be used to return the object with lowest
+    priority, and 'pop_smallest' also removes it.
+
+    The 'sorted_iter' method provides a destructive sorted iterator.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(priority_dict, self).__init__(*args, **kwargs)
+        self._rebuild_heap()
+
+    def _rebuild_heap(self):
+        self._heap = [(v, k) for k, v in self.iteritems()]
+        heapify(self._heap)
+
+    def smallest(self):
+        """Return the item with the lowest priority.
+
+        Raises IndexError if the object is empty.
+        """
+
+        heap = self._heap
+        v, k = heap[0]
+        while k not in self or self[k] != v:
+            heappop(heap)
+            v, k = heap[0]
+        return k
+
+    def pop_smallest(self):
+        """Return the item with the lowest priority and remove it.
+
+        Raises IndexError if the object is empty.
+        """
+
+        heap = self._heap
+        v, k = heappop(heap)
+        while k not in self or self[k] != v:
+            v, k = heappop(heap)
+        del self[k]
+        return k
+
+    def __setitem__(self, key, val):
+        # We are not going to remove the previous value from the heap,
+        # since this would have a cost O(n).
+
+        super(priority_dict, self).__setitem__(key, val)
+
+        if len(self._heap) < 2 * len(self):
+            heappush(self._heap, (val, key))
+        else:
+            # When the heap grows larger than 2 * len(self), we rebuild it
+            # from scratch to avoid wasting too much memory.
+            self._rebuild_heap()
+
+    def setdefault(self, key, val):
+        if key not in self:
+            self[key] = val
+            return val
+        return self[key]
+
+    def update(self, *args, **kwargs):
+        # Reimplementing dict.update is tricky -- see e.g.
+        # http://mail.python.org/pipermail/python-ideas/2007-May/000744.html
+        # We just rebuild the heap from scratch after passing to super.
+
+        super(priority_dict, self).update(*args, **kwargs)
+        self._rebuild_heap()
+
+    def sorted_iter(self):
+        """Sorted iterator of the priority dictionary items.
+
+        Beware: this will destroy elements as they are returned.
+        """
+
+        while self:
+            yield self.pop_smallest()
+
+class csp:
+    def __init__(self, initial_board):
+        def constraint(i, j): return (i != j)
+        self.X = {} # variables
+        self.D = {} # dominios
+        self.arcs = {} # arcos
+        self.constraint = constraint # obligaciones
+
+        # generate X, D & arcs
+        i = 1
+        c = 'A'
+        for x, value in enumerate(initial_board):
+            square = c + str(i)
+            self.X[square] = int(value)
+            self.arcs[square] = self.generate_arcs(square)
+            if value == '0':
+                self.D[square] = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+            else:
+                self.D[square] = [int(value)]
+            i += 1
+            if i > 9:
+                i = 1
+                c = chr(ord(c) + 1)
+
+        sys.setrecursionlimit(100000)
+        return
+
+    def generate_arcs(self, variable):
+        arcs = []
+        letter = variable[0]
+        n = int(variable[1])
+
+        # column
+        temp = []
+        for i in range(1,10): # --> 1..9
+            if i != n:
+                temp.append(letter + str(i))
+        arcs.append(temp)
+
+        #row
+        c = 'A'
+        temp = []
+        for alpha in range(0,9): # --> 0..8
+            s = chr(ord(c) + alpha) + str(n)
+            if s != variable:
+                temp.append(s)
+        arcs.append(temp)
+
+        # squares
+        if n / 3.0 <= 1:
+            rows = [1, 2, 3]
+        elif n / 3.0 <= 2:
+            rows = [4, 5, 6]
+        else:
+            rows = [7, 8, 9]
+
+        n_letter = ord(letter) - 64
+        if n_letter / 3.0 <= 1:
+            columns = ['A', 'B', 'C']
+        elif n_letter / 3.0 <= 2:
+            columns = ['D' , 'E', 'F']
+        else:
+            columns = ['G', 'H', 'I']
+
+        temp = []
+        for column in columns:
+            for row in rows:
+                square = column + str(row)
+                if square != variable:
+                    temp.append(square)
+        arcs.append(temp)
+
+        return arcs
+
+
+class Sudoku:
+    def __init__(self, csp): #, movs=[]):
+        self.csp = csp
+        self.queue = deque()
+        for kw in self.csp.arcs.items():
+            arc = kw[0]
+            #for arc in kw:
+            for k in self.csp.arcs[arc]:
+                for neighbor in k:
+                    if (arc, neighbor) not in self.queue:
+                        self.queue.append((arc, neighbor))
+        return
+
+    def ac3_search(self, csp):
+        while self.queue:
+            Xi, Xj = self.queue.popleft()
+            if self.revise(csp, Xi, Xj):
+                if len(csp.D[Xi]) == 0:
+                    return False
+                for k in csp.arcs[Xi]:
+                    for Xk in k:
+                        if (Xk, Xi) not in self.queue and Xk != Xj:
+                            self.queue.append((Xk, Xi))
+        return True
+
+    def revise(self, csp, Xi, Xj):
+        revised = False
+        if len(csp.D[Xj]) > 1:
+            return False
+        for x in csp.D[Xi]: # valores para Di
+            #if not self.csp.constraint(self.csp.D[i], self.csp.D[j]):
+            for y in csp.D[Xj]:
+                if not csp.constraint(x, y): #TODO: comprobar porque funciona sin int(y)
+                    csp.D[Xi].remove(x)
+                    revised = True
+        return revised
+
+    def is_solved(self, csp):
+        for k, v in sorted(csp.D.items()):
+            if len(csp.D[k]) > 1:
+                return False
+            for arc in csp.arcs[k]:
+                for w in arc:
+                    if len(csp.D[w]) > 1:
+                        return False
+                    if not csp.constraint(csp.D[k], csp.D[w]):
+                        return False
+        return True
+
+    def print_result(self, csp, method):
+        f = open("output.txt", 'w')
+        c = 'A'
+        for alpha in range(0,9): # --> 0..8
+            s = chr(ord(c) + alpha)
+            for i in range(1,10): # --> 1..9
+                k = s + str(i)
+                for v in csp.D[k]:
+                    f.write(str(v))
+                    #break
+        f.write(" " + method + "\n")
+        f.close()
+        return
+
+
+    #**********************************************************************************************
+    #**********************************************************************************************
+    def ac3(self, csp, queue):
+        while queue:
+            Xi, Xj = queue.popleft()
+            if self.revise_ac3(csp, Xi, Xj):
+                if len(csp.D[Xi]) == 0:
+                    return False
+                for k in csp.arcs[Xi]:
+                    for Xk in k:
+                        if (Xk, Xi) not in self.queue and Xk != Xj:
+                            queue.append((Xk, Xi))
+        return True
+
+    def revise_ac3(self, csp, Xi, Xj):
+        revised = False
+        if len(csp.D[Xj]) > 1:
+            return False
+        for x in csp.D[Xi]: # valores para Di
+            #if not self.csp.constraint(self.csp.D[i], self.csp.D[j]):
+            for y in csp.D[Xj]:
+                if not csp.constraint(x, int(y)):
+                    csp.D[Xi].remove(x)
+                    revised = True
+        return revised
+
+    def select_unassigned_variable(self, csp):
+        """
+        Se trata de escoger un dominio con el menor numero de elementos (MRV), excluyendo 1 solo elemento.
+        Con la siguiente instruccion aparecen primero los de menor numero de elementos, pero los que solamente
+        tienen 1 son desplazados al final.
+        Se supone que nunca se llamara a esta funcion si todos los dominios tienen un solo valor
+        Tambien se supone que csp.D se ira actualizando con assignment
+        """
+        orderedD = sorted(csp.D, key=lambda k: len(csp.D[k]) if len(csp.D[k]) > 1 else 10, reverse=False)
+        return orderedD[0]
+
+    def fill_queue(self, arcs, csp):
+        queue = deque()
+        for kw in arcs:
+            arc = kw[0]
+            for k in csp.arcs[arc]:
+                for neighbor in k:
+                    if (arc, neighbor) not in self.queue:
+                        queue.append((arc, neighbor))
+        return queue
+
+    def order_domain_values(self, var, assignment, csp):
+        """
+        Decidimos el orden en que se examinan los valores de la variable "var", utilizando la
+        heuristica "least-constraining-value". Esto es, damos preferencia a los valores que dejan
+        menos opciones posibles en las variables del arco.
+        """
+
+        #values = dict()
+        #for value in csp.D[var]: # 07/07/17
+        #    csp.D[var] = [value]
+            #inicializamos la cola de todos los arcos
+            #queue = self.fill_queue(csp.arcs.items(), csp)
+            #temporal
+            #Dbak = copy.deepcopy(csp.D) # copia para recuperar entre iteraciones 07/07/17
+            #self.ac3(csp, queue)
+            #count = 0
+            #for k in self.csp.arcs[var]:
+            #    for neighbor in k:
+            #        count += len(csp.D[neighbor])
+            #values[str(value)] = count
+            #csp.D = copy.deepcopy(Dbak) # recuperamos los dominios originales
+        list = []
+        for value in csp.D[var]:
+            list.append(value)
+        #for w in sorted(values, key=values.get, reverse=True):
+        #    list.append(int(w))
+        #while values:
+        #    list.append(int(values.pop_smallest()))
+        return list
+
+    def inference(self, csp, var, value):
+        queue = deque()
+        inferences = {}
+        for k in csp.arcs[var]:
+            for neighbor in k:
+                inferences[neighbor] = 0
+                if (neighbor, var) not in queue and len(csp.D[neighbor]) != 1:
+                    queue.append((neighbor, var))
+                    if _DEBUG_LEVEL == 2:
+                        print (neighbor, csp.D[neighbor]),
+        #Dbak = copy.deepcopy(csp.D) 07/07/17
+        #inferences = copy.deepcopy(csp.X)
+        csp.D[var] = [value]
+        if self.ac3(csp, queue):
+            #if _DEBUG_LEVEL == 2:
+            #    for k in self.csp.arcs[var]:
+            #        for neighbor in k:
+            #            if csp.D[neighbor] != Dbak[neighbor]:
+            #                print "D changed"
+            #if self.arc_is_solved(csp.arcs[var], csp):
+            for k in self.csp.arcs[var]:
+                for neighbor in k:
+                    if len(csp.D[neighbor]) == 1:
+                        inferences[neighbor] = csp.D[neighbor][0]
+            #csp.D = copy.deepcopy(Dbak) # restauramos los dominios
+            return inferences
+
+        #csp.D = copy.deepcopy(Dbak) # restauramos los dominios 07/07/17
+        return None
+
+    def assignment_is_complete(self, assignment):
+        #count = 0
+        for k in assignment:
+            if assignment[k] == 0:
+                #count += 1
+                return False
+        #if _DEBUG_LEVEL == 1:
+        #    c = 'A'
+        #    j = 1
+        #    for alpha in range(0,9): # --> 0..8
+        #        for i in range(1,10):
+        #            s = chr(ord(c) + alpha) + str(i)
+        #            print (assignment[s]),
+        #            j += 1
+        #            if j > 9:
+        #                j = 1
+        #                print
+        #    print
+        #if count != 0:
+        #    if count < 20:
+        #        print count
+        #    print str(count) + " squares left"
+        #    return False
+
+        return True
+
+    def value_is_consistent_with_assignment(self, csp, assignment, var, value):
+        for k in csp.arcs[var]:
+            for neighbor in k:
+                if value == assignment[neighbor]:
+                    return False
+        return True
+
+    def backtrack(self, assignment, csp):
+        if self.assignment_is_complete(assignment):
+            return assignment
+        var = self.select_unassigned_variable(csp) # Minimum Remaining Value (MRV)
+        for value in self.order_domain_values(var, assignment, csp): # least-constraining-value
+            assignment_bak = copy.deepcopy(assignment)
+            Dbak = copy.deepcopy(csp.D)
+            if self.value_is_consistent_with_assignment(csp, assignment, var, value):
+                assignment[var] = value
+                inferences = self.inference(csp, var, value)
+                if inferences != None:
+                    for k in csp.arcs[var]:
+                        for x in k:
+                            assignment[x] = inferences[x]
+                    result = self.backtrack(assignment, csp)
+                    if result != None:
+                        return result
+            #remove var = value and inferences from assignment
+            assignment = copy.deepcopy(assignment_bak)
+            csp.D = copy.deepcopy(Dbak)
+        return None
+
+    def backtracking_search(self, csp):
+        assignment = copy.deepcopy(csp.X)
+
+        return (self.backtrack(assignment, csp))
+
+def main(script, *args):
+    if len(sys.argv) != 2:
+        print "Error in arguments!"
+        sys.exit()
+
+    initialTime = time.clock()
+    myCsp = csp(sys.argv[1])
+    mySudoku = Sudoku(myCsp)
+    """
+    if mySudoku.ac3_search(mySudoku.csp):
+        if mySudoku.is_solved(mySudoku.csp):
+            mySudoku.print_result(mySudoku.csp, "AC3")
+            print "success!"
+        else:
+            print "failed!"
+    else:
+        print "failed!"
+    """
+
+    """
+    (result, X) = mySudoku.backtracking_search_1st(mySudoku.csp)
+    c = 'A'
+    j = 1
+    for alpha in range(0,9): # --> 0..8
+        for i in range(1,10):
+          s = chr(ord(c) + alpha) + str(i)
+          print (X[s]),
+          j += 1
+          if j > 9:
+            j = 1
+            print
+    """
+    if _DEBUG_LEVEL == 1:
+        print ('initial board')
+        c = 'A'
+        j = 1
+        for alpha in range(0,9): # --> 0..8
+            for i in range(1,10):
+                s = chr(ord(c) + alpha) + str(i)
+                print (mySudoku.csp.X[s]),
+                j += 1
+                if j > 9:
+                    j = 1
+                    print
+        print
+    assignment = mySudoku.backtracking_search(mySudoku.csp)
+    if assignment == None:
+        print ('backtracking failed')
+    if _DEBUG_LEVEL == 1 and assignment != None:
+        mySudoku.print_result(mySudoku.csp, "BTS")
+        c = 'A'
+        j = 1
+        for alpha in range(0,9): # --> 0..8
+            for i in range(1,10):
+                s = chr(ord(c) + alpha) + str(i)
+                print (assignment[s]),
+                j += 1
+                if j > 9:
+                    j = 1
+                    print
+
+    finalTime = time.clock()
+    print ('time', finalTime - initialTime)
+
+    # duracion 1074.9530526823648
+    # con         #if len(csp.D[Xj]) > 1:
+    #             #    return False
+    # en revise_ac3
+    #
+    # duracion 1068.830219765414
+    # con         if len(csp.D[Xj]) > 1:
+    #                 return False
+    # en revise_ac3
+    #
+    # duracion 72.24073339826083
+    # sin order_domain_values
+
+
+
+    """
+    solved AC3    : 000260701680070090190004500820100040004602900050003028009300074040050036703018000
+    solved BTS    : 500068000000000060042050000000800900001000040903000620700001009004200003080000000
+                    597468132318927564642153897456832971821796345973514628735641289164289753289375416 BTS
+                    000530000005000600000190503000004000000000164100370800008000040010000008004700921
+
+                    000000009024059003750000060000000000070030890000065742800002000000006010043008000
+
+                    040012050000300006008007009000000103317000000400009080070000000000800000090620805
+
+    """
+
+    """
+python -m cProfile -s tottime
+
+         78618045 function calls (64645381 primitive calls) in 267.898 seconds
+
+   Ordered by: internal time
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+     5922  238.924    0.040  238.924    0.040 driver.py:281(fill_queue)
+14006113/35133    9.758    0.000   21.601    0.001 copy.py:145(deepcopy)
+     7606    6.641    0.001    6.716    0.001 driver.py:246(ac3)
+  1902520    3.854    0.000    9.640    0.000 copy.py:226(_deepcopy_list)
+  5111259    2.364    0.000    3.005    0.000 copy.py:267(_keep_alive)
+ 19117373    1.735    0.000    1.735    0.000 {method 'get' of 'dict' objects}
+    35133    1.387    0.000   21.499    0.001 copy.py:253(_deepcopy_dict)
+ 13363685    1.157    0.000    1.157    0.000 {method 'append' of 'list' objects}
+ 21090158    1.065    0.000    1.065    0.000 {id}
+  3173607    0.278    0.000    0.278    0.000 copy.py:198(_deepcopy_atomic)
+     1685    0.227    0.000  248.641    0.148 driver.py:292(order_domain_values)
+
+   1685/1    0.168    0.000  267.837  267.837 driver.py:386(backtrack)
+     3370    0.061    0.000    0.113    0.000 {sorted}
+    15252    0.060    0.000    0.073    0.000 driver.py:258(revise_ac3)
+     1684    0.045    0.000    6.762    0.004 driver.py:323(inference)
+   136485    0.043    0.000    0.052    0.000 driver.py:278(<lambda>)
+        1    0.041    0.041    0.041    0.041 driver.py:181(__init__)
+   457140    0.025    0.000    0.025    0.000 {len}
+     5923    0.011    0.000    0.011    0.000 {method 'items' of 'dict' objects}
+
+     5845    0.011    0.000    0.011    0.000 driver.py:379(value_is_consistent_with_assignment)
+        1    0.010    0.010  267.890  267.890 driver.py:413(main)
+    89435    0.008    0.000    0.008    0.000 driver.py:107(constraint)
+    35133    0.005    0.000    0.005    0.000 {method 'iteritems' of 'dict' objects}
+    13550    0.004    0.000    0.004    0.000 {method 'remove' of 'list' objects}
+        1    0.004    0.004    0.004    0.004 collections.py:11(<module>)
+        1    0.004    0.004  267.898  267.898 driver.py:11(<module>)
+     1685    0.003    0.000    0.107    0.000 driver.py:270(select_unassigned_variable)
+     1685    0.002    0.000    0.002    0.000 driver.py:353(assignment_is_complete)
+    15252    0.001    0.000    0.001    0.000 {method 'popleft' of 'collections.deque' objects}
+       81    0.001    0.000    0.001    0.000 driver.py:132(generate_arcs)
+    16872    0.001    0.000    0.001    0.000 {method 'append' of 'collections.deque' objects}
+        1    0.000    0.000    0.000    0.000 heapq.py:31(<module>)
+        1    0.000    0.000    0.002    0.002 driver.py:106(__init__)
+      819    0.000    0.000    0.000    0.000 {chr}
+      172    0.000    0.000    0.000    0.000 {range}
+      900    0.000    0.000    0.000    0.000 {ord}
+        1    0.000    0.000  267.838  267.838 driver.py:408(backtracking_search)
+
+        1    0.000    0.000    0.000    0.000 keyword.py:11(<module>)
+        1    0.000    0.000    0.000    0.000 collections.py:38(OrderedDict)
+        1    0.000    0.000    0.000    0.000 collections.py:407(Counter)
+        1    0.000    0.000    0.000    0.000 driver.py:180(Sudoku)
+        1    0.000    0.000    0.000    0.000 driver.py:20(priority_dict)
+        1    0.000    0.000    0.000    0.000 {time.clock}
+        1    0.000    0.000    0.000    0.000 {sys.setrecursionlimit}
+        1    0.000    0.000    0.000    0.000 driver.py:105(csp)
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+
+    """
+
+if __name__ == '__main__':
+    main(*sys.argv)
+

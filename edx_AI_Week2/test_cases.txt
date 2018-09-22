@@ -1,0 +1,24 @@
+bfs 3,1,2,0,4,5,6,7,8 0.007 seconds
+dfs 3,1,2,0,4,5,6,7,8 0.005 seconds
+ast 3,1,2,0,4,5,6,7,8 0.008 seconds
+bfs 1,2,5,3,4,0,6,7,8 0.012 seconds
+dfs 1,2,5,3,4,0,6,7,8 403.908 seconds (*) -> 166.508 seconds
+ast 1,2,5,3,4,0,6,7,8 0.006 seconds
+
+bfs 3,1,2,0,4,5,6,7,8 0.003 seconds
+dfs 3,1,2,0,4,5,6,7,8 0.004 seconds
+ast 3,1,2,0,4,5,6,7,8 0.004 seconds
+bfs 1,2,5,3,4,0,6,7,8 0.007 seconds
+dfs 1,2,5,3,4,0,6,7,8 465.057 seconds (*) -> 166.926 seconds
+ast 1,2,5,3,4,0,6,7,8 0.003 seconds
+bfs 1,4,2,7,5,8,3,0,6 0.017 seconds
+dfs 1,4,2,7,5,8,3,0,6 183.235 seconds (*) -> 72.129 seconds
+ast 1,4,2,7,5,8,3,0,6 0.004 seconds
+bfs 2,1,0,6,4,5,8,3,7 67.526 seconds -> 44.400 seconds
+dfs 2,1,0,6,4,5,8,3,7 48.645 seconds -> 24.608 seconds
+ast 2,1,0,6,4,5,8,3,7 0.126 seconds
+bfs 0,8,7,6,5,4,3,2,1 173.614 seconds (*) -> 97.215 seconds
+dfs 0,8,7,6,5,4,3,2,1 428.203 seconds (*) -> 174.891 seconds
+ast 0,8,7,6,5,4,3,2,1 0.752 seconds -> 0.601 seconds
+
+

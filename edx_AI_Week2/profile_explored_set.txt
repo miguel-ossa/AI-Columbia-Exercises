@@ -1,0 +1,116 @@
+MiniMax:AI mossa$ python -m cProfile -s tottime driver.py bfs 6,1,8,4,0,2,7,3,5
+         2551596 function calls in 191.817 seconds
+
+   Ordered by: internal time
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+    83610  188.014    0.002  188.014    0.002 driver.py:116(child_in_frontier)
+        1    1.114    1.114  191.785  191.785 driver.py:154(uninformed_search)
+    72939    0.395    0.000    1.028    0.000 Queue.py:107(put)
+    54094    0.264    0.000    0.419    0.000 driver.py:89(expand)
+   127035    0.261    0.000    0.512    0.000 threading.py:373(notify)
+   145822    0.253    0.000    0.253    0.000 driver.py:128(child_is_explored)
+   145822    0.214    0.000    0.214    0.000 driver.py:146(child_node)
+   308165    0.195    0.000    0.195    0.000 {method 'acquire' of 'thread.lock' objects}
+    54095    0.178    0.000    0.404    0.000 Queue.py:150(get)
+   127035    0.135    0.000    0.202    0.000 threading.py:300(_is_owned)
+    54095    0.127    0.000    0.211    0.000 Queue.py:93(empty)
+   291807    0.122    0.000    0.122    0.000 {method 'append' of 'list' objects}
+    72939    0.116    0.000    0.133    0.000 Queue.py:204(_put)
+   145822    0.058    0.000    0.058    0.000 {method 'pop' of 'list' objects}
+   108190    0.054    0.000    0.079    0.000 Queue.py:200(_qsize)
+   127035    0.049    0.000    0.049    0.000 threading.py:64(_note)
+   181130    0.045    0.000    0.045    0.000 {method 'release' of 'thread.lock' objects}
+    54095    0.038    0.000    0.038    0.000 {method 'add' of 'set' objects}
+    54095    0.035    0.000    0.045    0.000 Queue.py:208(_get)
+    54094    0.033    0.000    0.033    0.000 {method 'index' of 'list' objects}
+    54096    0.031    0.000    0.031    0.000 driver.py:104(goal_reached)
+        1    0.027    0.027  191.817  191.817 driver.py:3(<module>)
+   108264    0.025    0.000    0.025    0.000 {len}
+    72939    0.017    0.000    0.017    0.000 {method 'append' of 'collections.deque' objects}
+    54095    0.010    0.000    0.010    0.000 {method 'popleft' of 'collections.deque' objects}
+        1    0.001    0.001    0.003    0.003 Queue.py:1(<module>)
+        1    0.001    0.001    0.001    0.001 {open}
+        1    0.001    0.001    0.001    0.001 collections.py:1(<module>)
+        1    0.001    0.001    0.001    0.001 heapq.py:31(<module>)
+        1    0.001    0.001    0.002    0.002 threading.py:1(<module>)
+        1    0.000    0.000    0.001    0.001 driver.py:267(show_stats)
+        1    0.000    0.000    0.000    0.000 {method 'close' of 'file' objects}
+        5    0.000    0.000    0.000    0.000 threading.py:260(__init__)
+        2    0.000    0.000    0.000    0.000 sre_parse.py:395(_parse)
+        1    0.000    0.000  191.786  191.786 driver.py:312(main)
+       28    0.000    0.000    0.000    0.000 sre_parse.py:193(__next)
+        2    0.000    0.000    0.000    0.000 sre_compile.py:433(_compile_info)
+        2    0.000    0.000    0.000    0.000 re.py:230(_compile)
+        9    0.000    0.000    0.000    0.000 driver.py:67(getvalues)
+        7    0.000    0.000    0.000    0.000 {method 'write' of 'file' objects}
+        1    0.000    0.000    0.000    0.000 driver.py:15(__init__)
+        2    0.000    0.000    0.000    0.000 sre_compile.py:64(_compile)
+        2    0.000    0.000    0.000    0.000 sre_parse.py:706(parse)
+        1    0.000    0.000    0.000    0.000 threading.py:640(Thread)
+        2    0.000    0.000    0.000    0.000 sre_parse.py:151(getwidth)
+        1    0.000    0.000    0.000    0.000 threading.py:656(__init__)
+       22    0.000    0.000    0.000    0.000 sre_parse.py:149(append)
+       18    0.000    0.000    0.000    0.000 {range}
+        2    0.000    0.000    0.000    0.000 sre_compile.py:567(compile)
+        1    0.000    0.000    0.000    0.000 keyword.py:11(<module>)
+        1    0.000    0.000    0.000    0.000 warnings.py:49(filterwarnings)
+        1    0.000    0.000    0.000    0.000 collections.py:26(OrderedDict)
+        1    0.000    0.000  191.786  191.786 driver.py:256(solve_it)
+        5    0.000    0.000    0.000    0.000 threading.py:242(Condition)
+        1    0.000    0.000    0.000    0.000 threading.py:1090(__init__)
+       26    0.000    0.000    0.000    0.000 sre_parse.py:212(get)
+        1    0.000    0.000    0.000    0.000 driver.py:13(State)
+        1    0.000    0.000    0.000    0.000 threading.py:576(set)
+        1    0.000    0.000    0.000    0.000 {resource.getrusage}
+        1    0.000    0.000    0.000    0.000 Queue.py:26(__init__)
+        2    0.000    0.000    0.000    0.000 sre_compile.py:552(_code)
+       30    0.000    0.000    0.000    0.000 {ord}
+        1    0.000    0.000    0.000    0.000 threading.py:255(_Condition)
+       10    0.000    0.000    0.000    0.000 {isinstance}
+        7    0.000    0.000    0.000    0.000 threading.py:59(__init__)
+        1    0.000    0.000    0.000    0.000 Queue.py:197(_init)
+        2    0.000    0.000    0.000    0.000 re.py:192(compile)
+        2    0.000    0.000    0.000    0.000 sre_parse.py:317(_parse_sub)
+        1    0.000    0.000    0.000    0.000 Queue.py:21(Queue)
+        4    0.000    0.000    0.000    0.000 sre_compile.py:546(isstring)
+        1    0.000    0.000    0.000    0.000 Queue.py:212(PriorityQueue)
+        2    0.000    0.000    0.000    0.000 {time.time}
+        2    0.000    0.000    0.000    0.000 {method 'extend' of 'list' objects}
+        1    0.000    0.000    0.000    0.000 driver.py:138(new_node)
+        1    0.000    0.000    0.000    0.000 collections.py:395(Counter)
+        1    0.000    0.000    0.000    0.000 threading.py:125(_RLock)
+        1    0.000    0.000    0.000    0.000 threading.py:400(notifyAll)
+        2    0.000    0.000    0.000    0.000 {_sre.compile}
+       12    0.000    0.000    0.000    0.000 {_sre.getlower}
+        1    0.000    0.000    0.000    0.000 threading.py:561(__init__)
+        2    0.000    0.000    0.000    0.000 sre_parse.py:189(__init__)
+        2    0.000    0.000    0.000    0.000 {method 'setter' of 'property' objects}
+        1    0.000    0.000    0.000    0.000 threading.py:789(_set_ident)
+        1    0.000    0.000    0.000    0.000 threading.py:542(Event)
+        1    0.000    0.000    0.000    0.000 threading.py:1058(_Timer)
+        1    0.000    0.000    0.000    0.000 {method 'split' of 'str' objects}
+        1    0.000    0.000    0.000    0.000 threading.py:1128(_DummyThread)
+        1    0.000    0.000    0.000    0.000 threading.py:552(_Event)
+        1    0.000    0.000    0.000    0.000 {method 'replace' of 'str' objects}
+        2    0.000    0.000    0.000    0.000 sre_parse.py:92(__init__)
+        1    0.000    0.000    0.000    0.000 threading.py:57(_Verbose)
+        1    0.000    0.000    0.000    0.000 threading.py:1088(_MainThread)
+        4    0.000    0.000    0.000    0.000 {thread.allocate_lock}
+        1    0.000    0.000    0.000    0.000 {method 'insert' of 'list' objects}
+        4    0.000    0.000    0.000    0.000 {min}
+        1    0.000    0.000    0.000    0.000 threading.py:423(_Semaphore)
+        2    0.000    0.000    0.000    0.000 sre_parse.py:206(match)
+        1    0.000    0.000    0.000    0.000 Queue.py:17(Full)
+        1    0.000    0.000    0.000    0.000 Queue.py:231(LifoQueue)
+        1    0.000    0.000    0.000    0.000 driver.py:10(node_object)
+        1    0.000    0.000    0.000    0.000 Queue.py:13(Empty)
+        1    0.000    0.000    0.000    0.000 {issubclass}
+        2    0.000    0.000    0.000    0.000 sre_parse.py:67(__init__)
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+        1    0.000    0.000    0.000    0.000 {method 'reverse' of 'list' objects}
+        2    0.000    0.000    0.000    0.000 {thread.get_ident}
+        2    0.000    0.000    0.000    0.000 {method 'items' of 'dict' objects}
+        1    0.000    0.000    0.000    0.000 {pow}
+        1    0.000    0.000    0.000    0.000 threading.py:1097(_set_daemon)
+        1    0.000    0.000    0.000    0.000 threading.py:515(_BoundedSemaphore)

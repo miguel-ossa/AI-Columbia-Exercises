@@ -1,0 +1,156 @@
+#!/usr/bin/python
+
+#from pylab import plot,show,norm
+#from pylab import plot,show,norm
+#import numpy
+import sys
+from csv import reader, writer
+from decimal import *
+#from Carbon.Aliases import true
+
+def load_csv(filename):
+    samples = list()
+    with open(filename, 'r') as fd:
+        csv_reader = reader(fd)
+        for row in csv_reader:
+            #row.insert(0, '1') # bias
+            samples.append(row)
+
+    return samples
+
+# pos 0 has feature 1
+# pos 1 has feature 2
+# pos 2 has true label
+def convert_to_float(samples, column):
+    for row in samples:
+        row[column] = float(row[column].strip())
+    return
+
+def mean(rows):
+    total = 0
+    for x in rows:
+        total += x
+    elements = len(rows)
+    return total / elements
+
+def funct(rows):
+    m = mean(rows)
+    diff = sum((i-m)**2 for i in rows)
+    return diff
+
+def stdev(rows):
+    """Calculates the population standard deviation"""
+    diff = funct(rows)
+    dev = diff/len(rows)
+    return dev**0.5
+
+def scale(samples):
+    trainset = []
+    for row in samples:
+        features = []
+        features.append(row[0])
+        features.append(row[1])
+        z1 = (row[0] - mean(features)) / stdev(features)
+        z2 = (row[1] - mean(features)) / stdev(features)
+        par = []
+        par.append(1.0) # bias
+        par.append(z1) # feature 1 scaled
+        par.append(z2) # feature 2 scaled
+        par.append(row[2]) # label
+        trainset.append(par)
+    return trainset
+
+def f(betas, features):
+    """Receives the betas (betas) and one row of features, plus label (features).
+    """
+    result = 0
+    i = 0
+    for x in features[:-1]: # ignore the label
+        result += betas[i] * x
+        i += 1
+    return result
+
+def calculate_sigma(alpha, betas, features):
+    """Receives the betas (betas) and one row of features, plus label (features).
+    """
+    f_x = f(betas, features)
+    tlabel = features[len(features)-1]
+    summa = 0
+    for x in features[:-1]:
+        summa = (f_x - tlabel) * x # minus label
+    return summa
+
+def gradient_descent(alpha, betas, features):
+    """Receives the learning rate (alpha), the betas (betas) and one row of features, plus label (features)
+    """
+    total_sigma = calculate_sigma(alpha, betas, features)
+    n = (len(features) - 1)
+    result = total_sigma * 1 / n
+    result = result * alpha
+    return result
+
+def risk(betas, features):
+    """Receives the betas (betas)  and one row of features, plus label (features)
+    """
+    f_x = f(betas, features)
+    tlabel = features[len(features)-1]
+    summa = 0
+    for x in features[:-1]:
+        partial = Decimal((f_x - tlabel), 4)
+        #print partial
+        summa = partial**2 # minus label
+    n = (len(features) - 1)
+    result = float(summa * 1 / (2*n))
+    return result
+
+def main(script, *args):
+
+    if len(sys.argv) != 3:
+        print "Error in arguments!"
+        sys.exit()
+    trainset = load_csv(sys.argv[1])
+    columns = len(trainset[0])
+    for i in range(columns):
+        convert_to_float(trainset, i)
+
+    scaled_trainset = scale(trainset) # bias, features plus label
+
+    #learning_rates = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0, 10.0]
+    learning_rates = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0, 10.0, 0.4]
+    min_risk = Decimal(9999.0)
+    for alpha in learning_rates:
+        iterations = 0
+        risk_betas = 0
+        ant_risk = Decimal(9999.0)
+        betas = [0 for _ in range(len(scaled_trainset[0])-1)]
+        convergence = False
+        while iterations < 100 and not convergence:
+            iterations += 1
+            if risk_betas == ant_risk:
+                convergence = True
+                print "convergence with alpha=", alpha, "iterations=", iterations - 1, "risk=", risk_betas
+            else:
+                ant_risk = risk_betas
+            for row in scaled_trainset:
+                risk_betas = risk(betas, row)
+                gradient = gradient_descent(alpha, betas, row)
+                betas[0] = betas[0] - gradient
+                betas[1] = betas[1] - gradient
+                betas[2] = betas[2] - gradient
+        if risk_betas < min_risk:
+            print "***alpha=", alpha, " risk=", risk_betas
+            min_risk = risk_betas
+
+    #fd = open(sys.argv[2],'w')
+    #output = writer(fd)
+    #perceptron.calculate(trainset, output)
+    #fd.close()
+
+    #plot_convergence(trainset, perceptron.w)
+    #plot_trainset(trainset)
+    #show()
+
+
+if __name__ == '__main__':
+    main(*sys.argv)
+
